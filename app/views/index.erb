@@ -4,7 +4,7 @@
   </head>
   <body>
     <div class="container">
-      <h1>WebSockets Chat App</h1>
+      <h1>Paper Rock Scissors</h1>
       <div id="chat-log"></div>
       <div id="form">
         <input type="text" id="message">
@@ -53,7 +53,6 @@
 
         try {
           socket.send(text);
-          addMessage("Sent: " + text)
         } catch(exception) {
           addMessage("Failed To Send")
         }

@@ -53,13 +53,16 @@ EM.run do
       if open_game
         open_game.add_player client
         @lobby.delete(client)
+        client.ws.send("Joined a game with: #{open_game.clients.map{|c| c.name}}")
       else
         game = Game.new()
         game.add_player(client)
         @lobby.delete(client)
         @games << game
+        client.ws.send("Started a new game. Waiting for other players")
       end
-      client.ws.send('Joined a game')
+    else
+      @lobby.each{|cl| cl.ws.send("#{client.name}: #{msg}")}
     end
   end
 
@@ -85,11 +88,12 @@ EM.run do
       ws.send "Closed."
       client = @clients.detect {|c| c.ws == ws}
       @clients.delete client
+      @lobby.delete client
+      game = @games.detect {|g| g.clients.include?(client)}
+      game.clients.delete client
     end
 
     ws.onmessage do |msg|
-      puts "Received Message: #{msg}"
-
       client = @clients.detect {|c| c.ws == ws}
       if @lobby.include?(client)
         handle_lobby_actions client, msg
