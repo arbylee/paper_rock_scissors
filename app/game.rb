@@ -1,107 +1,26 @@
-require 'thin'
-require 'em-websocket'
-require 'sinatra/base'
-
-EM.run do
-  class App < Sinatra::Base
-    get '/' do
-      erb :index
-    end
+class Game
+  attr_reader :clients
+  VALID_THROWS = ['rock', 'paper', 'scissors']
+  MAX_PLAYERS = 2
+  def initialize ui
+    @ui = ui
+    @clients = []
+    @throws = {}
   end
 
-  @clients = []
-  @throws = {}
-  @lobby = []
-  @games = []
-
-  class Client
-    attr_reader :name, :ws
-    def initialize name, ws
-      @name = name
-      @ws = ws
-    end
+  def add_player client
+    @clients << client
+    @ui.add_receiver(client)
   end
 
-  class Game
-    attr_reader :clients
-    VALID_THROWS = ['rock', 'paper', 'scissors']
-    MAX_PLAYERS = 2
-    def initialize
-      @clients = []
+  def receive client, msg
+    if VALID_THROWS.include? msg
+      @throws[client.name] = msg
+    end
+    if @throws.length == @clients.length
+      response = "Throws are #{@throws}"
       @throws = {}
-    end
-
-    def add_player client
-      @clients << client
-    end
-
-    def receive client, msg
-      if VALID_THROWS.include? msg
-        @throws[client.name] = msg
-      end
-      if @throws.length == @clients.length
-        response = "Throws are #{@throws}"
-        @throws = {}
-        return response
-      end
+      @ui.display(response)
     end
   end
-
-  def handle_lobby_actions client, msg
-    if msg == "join"
-      open_game = @games.detect{|g| g.clients.size < Game::MAX_PLAYERS}
-      if open_game
-        open_game.add_player client
-        @lobby.delete(client)
-        client.ws.send("Joined a game with: #{open_game.clients.map{|c| c.name}}")
-      else
-        game = Game.new()
-        game.add_player(client)
-        @lobby.delete(client)
-        @games << game
-        client.ws.send("Started a new game. Waiting for other players")
-      end
-    else
-      @lobby.each{|cl| cl.ws.send("#{client.name}: #{msg}")}
-    end
-  end
-
-  def handle_game_actions client, msg
-    game = @games.detect{|g| g.clients.include?(client)}
-    response = game.receive(client, msg)
-    if response
-      game.clients.each {|cl| cl.ws.send(response)}
-    end
-  end
-
-  EM::WebSocket.start(:host => '0.0.0.0', :port => '3001') do |ws|
-    ws.onopen do |handshake|
-      name = "anon#{rand(9999)}"
-      client = Client.new(name, ws)
-      @clients << client
-      @lobby << client
-      ws.send "Connected to #{handshake.path}."
-      ws.send "Welcome #{name}"
-    end
-
-    ws.onclose do
-      ws.send "Closed."
-      client = @clients.detect {|c| c.ws == ws}
-      @clients.delete client
-      @lobby.delete client
-      game = @games.detect {|g| g.clients.include?(client)}
-      game.clients.delete client
-    end
-
-    ws.onmessage do |msg|
-      client = @clients.detect {|c| c.ws == ws}
-      if @lobby.include?(client)
-        handle_lobby_actions client, msg
-      else
-        handle_game_actions client, msg
-      end
-    end
-  end
-
-  App.run! :port => 3000
 end

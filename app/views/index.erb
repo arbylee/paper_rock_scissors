@@ -33,7 +33,7 @@
           }
 
           socket.onmessage = function(msg) {
-            addMessage("Received: " + msg.data);
+            addMessage(msg.data);
           }
         } catch(exception) {
           addMessage("Error: " + exception);
