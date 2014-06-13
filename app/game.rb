@@ -10,17 +10,17 @@ class Game
 
   def add_player client
     @clients << client
-    @ui.add_receiver(client)
   end
 
   def receive client, msg
     if VALID_THROWS.include? msg
       @throws[client.name] = msg
+      @ui.message "Your throw is #{msg}", client
     end
     if @throws.length == @clients.length
       response = "Throws are #{@throws}"
       @throws = {}
-      @ui.display(response)
+      @ui.message(response, *@clients)
     end
   end
 end

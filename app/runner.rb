@@ -18,27 +18,38 @@ EM.run do
     end
   end
 
+  class Lobby
+    def initialize ui
+      @ui = ui
+      @clients = []
+    end
+
+    def add_client client
+      @clients << client
+    end
+
+    def remove_client client
+      @clients.delete client
+    end
+
+    def message msg
+      @clients.each {|c| c.ws.send(msg)}
+    end
+
+    def include? client
+      @clients.include? client
+    end
+  end
+
   class SocketUI
     def initialize
       @receivers = []
     end
 
-    def add_receiver client
-      @receivers << client
-    end
-
-    def display msg
-      @receivers.each do |client|
+    def message msg, *clients
+      clients.each do |client|
         client.ws.send(msg)
       end
-    end
-
-    def include? client
-      @receivers.include?(client)
-    end
-
-    def remove_receiver client
-      @receivers.delete client
     end
   end
 
@@ -47,17 +58,17 @@ EM.run do
       open_game = @games.detect{|g| g.clients.size < Game::MAX_PLAYERS}
       if open_game
         open_game.add_player client
-        @lobby.remove_receiver(client)
+        @lobby.remove_client(client)
         client.ws.send("Joined a game with: #{open_game.clients.map{|c| c.name}}")
       else
         game = Game.new(SocketUI.new)
         game.add_player(client)
-        @lobby.remove_receiver(client)
+        @lobby.remove_client(client)
         @games << game
         client.ws.send("Started a new game. Waiting for other players")
       end
     else
-      @lobby.display("#{client.name}: #{msg}")
+      @lobby.message("#{client.name}: #{msg}")
     end
   end
 
@@ -68,7 +79,7 @@ EM.run do
 
   @clients = []
   @throws = {}
-  @lobby = SocketUI.new
+  @lobby = Lobby.new SocketUI.new
   @games = []
 
 
@@ -77,7 +88,7 @@ EM.run do
       name = "anon#{rand(9999)}"
       client = Client.new(name, ws)
       @clients << client
-      @lobby.add_receiver client
+      @lobby.add_client client
       client.ws.send "Connected to #{handshake.path}."
       client.ws.send "Welcome #{name}"
     end
@@ -86,7 +97,7 @@ EM.run do
       ws.send "Closed."
       client = @clients.detect {|c| c.ws == ws}
       @clients.delete client
-      @lobby.remove_receiver client
+      @lobby.add_client client
       game = @games.detect {|g| g.clients.include?(client)}
       game.clients.delete client
     end
