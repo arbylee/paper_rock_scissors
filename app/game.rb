@@ -16,6 +16,8 @@ class Game
     if VALID_THROWS.include? msg
       @throws[client.name] = msg
       @ui.message "Your throw is #{msg}", client
+    else
+      @ui.message "#{msg} is not a valid throw.  Valid throws include #{VALID_THROWS.join(', ')}", client
     end
     if @throws.length == @clients.length
       response = "Throws are #{@throws}"
