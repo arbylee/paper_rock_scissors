@@ -42,10 +42,6 @@ EM.run do
   end
 
   class SocketUI
-    def initialize
-      @receivers = []
-    end
-
     def message msg, *clients
       clients.each do |client|
         client.ws.send(msg)
@@ -55,11 +51,11 @@ EM.run do
 
   def handle_lobby_actions client, msg
     if msg == "join"
-      open_game = @games.detect{|g| g.clients.size < Game::MAX_PLAYERS}
+      open_game = @games.detect{|g| g.players.size < Game::MAX_PLAYERS}
       if open_game
         open_game.add_player client
         @lobby.remove_client(client)
-        client.ws.send("Joined a game with: #{open_game.clients.map{|c| c.name}}")
+        client.ws.send("Joined a game with: #{open_game.players.map{|c| c.name}}")
       else
         game = Game.new(SocketUI.new)
         game.add_player(client)
@@ -73,8 +69,8 @@ EM.run do
   end
 
   def handle_game_actions client, msg
-    game = @games.detect{|g| g.clients.include?(client)}
-    game.receive(client, msg)
+    game = @games.detect{|g| g.players.include?(client)}
+    game.receive_input(client, msg)
   end
 
   @clients = []
@@ -98,8 +94,8 @@ EM.run do
       client = @clients.detect {|c| c.ws == ws}
       @clients.delete client
       @lobby.add_client client
-      game = @games.detect {|g| g.clients.include?(client)}
-      game.clients.delete client
+      game = @games.detect {|g| g.players.include?(client)}
+      game.players.delete client
     end
 
     ws.onmessage do |msg|
