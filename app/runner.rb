@@ -1,51 +1,16 @@
 require 'thin'
 require 'em-websocket'
 require 'sinatra/base'
+
+require_relative './client.rb'
 require_relative './game.rb'
+require_relative './lobby.rb'
+require_relative './socket_ui.rb'
 
 EM.run do
   class App < Sinatra::Base
     get '/' do
       erb :index
-    end
-  end
-
-  class Client
-    attr_reader :name, :ws
-    def initialize name, ws
-      @name = name
-      @ws = ws
-    end
-  end
-
-  class Lobby
-    def initialize ui
-      @ui = ui
-      @clients = []
-    end
-
-    def add_client client
-      @clients << client
-    end
-
-    def remove_client client
-      @clients.delete client
-    end
-
-    def message msg
-      @clients.each {|c| c.ws.send(msg)}
-    end
-
-    def include? client
-      @clients.include? client
-    end
-  end
-
-  class SocketUI
-    def message msg, *clients
-      clients.each do |client|
-        client.ws.send(msg)
-      end
     end
   end
 
@@ -77,7 +42,6 @@ EM.run do
   @throws = {}
   @lobby = Lobby.new SocketUI.new
   @games = []
-
 
   EM::WebSocket.start(:host => '0.0.0.0', :port => '3001') do |ws|
     ws.onopen do |handshake|
