@@ -12,7 +12,8 @@ class Game
     @players << player
   end
 
-  def receive_input player, msg
+  def receive_input player, data
+    msg = data['text']
     if VALID_THROWS.include? msg
       @throws[player.name] = msg
       @ui.message "Your throw is #{msg}", player

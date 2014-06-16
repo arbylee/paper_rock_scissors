@@ -16,7 +16,8 @@ function connect() {
     }
 
     socket.onmessage = function(msg) {
-      addMessage(msg.data);
+      data = JSON.parse(msg.data)
+      addMessage(data['text']);
     }
   } catch(exception) {
     addMessage("Error: " + exception);
@@ -37,7 +38,9 @@ function send() {
   }
 
   try {
-    socket.send(text);
+    message = {}
+    message.text = text
+    socket.send(JSON.stringify(message));
   } catch(exception) {
     addMessage("Failed To Send")
   }
@@ -56,3 +59,15 @@ $('#message').keypress(function(event) {
 $("#disconnect").click(function() {
   socket.close()
 });
+
+$('#paper').click(function(){
+    socket.send(JSON.stringify({'text': 'paper'}));
+})
+
+$('#rock').click(function(){
+    socket.send(JSON.stringify({'text': 'rock'}));
+})
+
+$('#scissors').click(function(){
+    socket.send(JSON.stringify({'text': 'scissors'}));
+})

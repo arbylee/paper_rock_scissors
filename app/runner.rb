@@ -1,3 +1,5 @@
+require 'json'
+
 require 'thin'
 require 'em-websocket'
 require 'sinatra/base'
@@ -14,33 +16,35 @@ EM.run do
     end
   end
 
-  def handle_lobby_actions client, msg
-    if msg == "join"
+  def handle_lobby_actions client, data
+    data = data['text']
+    if data == "join"
       open_game = @games.detect{|g| g.players.size < Game::MAX_PLAYERS}
       if open_game
         open_game.add_player client
         @lobby.remove_client(client)
-        client.ws.send("Joined a game with: #{open_game.players.map{|c| c.name}}")
+        @lobby.message("Joined a game with: #{open_game.players.map{|c| c.name}}", client)
       else
         game = Game.new(SocketUI.new)
         game.add_player(client)
         @lobby.remove_client(client)
         @games << game
-        client.ws.send("Started a new game. Waiting for other players")
+        @lobby.message("Started a new game. Waiting for other players", client)
       end
     else
-      @lobby.message("#{client.name}: #{msg}")
+      @lobby.message("#{client.name}: #{data}")
     end
   end
 
-  def handle_game_actions client, msg
+  def handle_game_actions client, data
     game = @games.detect{|g| g.players.include?(client)}
-    game.receive_input(client, msg)
+    game.receive_input(client, data)
   end
 
+  @ui = SocketUI.new
   @clients = []
   @throws = {}
-  @lobby = Lobby.new SocketUI.new
+  @lobby = Lobby.new(@ui)
   @games = []
 
   EM::WebSocket.start(:host => '0.0.0.0', :port => '3001') do |ws|
@@ -49,25 +53,28 @@ EM.run do
       client = Client.new(name, ws)
       @clients << client
       @lobby.add_client client
-      client.ws.send "Connected to #{handshake.path}."
-      client.ws.send "Welcome #{name}"
+      @lobby.message "Connected to #{handshake.path}.", client
+      @lobby.message "Welcome #{name}", client
     end
 
     ws.onclose do
-      ws.send "Closed."
       client = @clients.detect {|c| c.ws == ws}
+      @ui.message("Closed.", client)
       @clients.delete client
       @lobby.add_client client
       game = @games.detect {|g| g.players.include?(client)}
-      game.players.delete client
+      if game
+        game.players.delete client
+      end
     end
 
-    ws.onmessage do |msg|
+    ws.onmessage do |raw_data|
+      data = JSON.load(raw_data)
       client = @clients.detect {|c| c.ws == ws}
       if @lobby.include?(client)
-        handle_lobby_actions client, msg
+        handle_lobby_actions client, data
       else
-        handle_game_actions client, msg
+        handle_game_actions client, data
       end
     end
   end
