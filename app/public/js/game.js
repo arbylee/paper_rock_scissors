@@ -24,7 +24,9 @@ function connect() {
 }
 
 function addMessage(msg) {
-  $("#chat-log").append("<p>" + msg + "</p>");
+  var chat_log = $('#chat-log');
+  chat_log.append("<p>" + msg + "</p>");
+  chat_log.scrollTop(chat_log.prop("scrollHeight"));
 }
 
 function send() {
