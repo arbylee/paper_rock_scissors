@@ -13,20 +13,28 @@ class Game
   end
 
   def receive_input player, data
-    msg = data['text']
-    if VALID_THROWS.include? msg
-      @throws[player.name] = msg
-      @ui.message "Your throw is #{msg}", player
-    else
-      @ui.message "#{msg} is not a valid throw.  Valid throws include #{VALID_THROWS.join(', ')}", player
+    rps_throw = data['throw']
+
+    if rps_throw
+      if VALID_THROWS.include? rps_throw
+        @throws[player.name] = rps_throw
+        @ui.message "Your throw is #{rps_throw}", player
+      else
+        @ui.message "#{rps_throw} is not a valid throw.  Valid throws include #{VALID_THROWS.join(', ')}", player
+      end
+
+      if @throws.length == @players.length
+        @throws.each do |user, symbol|
+          @ui.message("#{user} threw #{symbol}", *@players)
+        end
+        @throws = {}
+      end
     end
 
-    if @throws.length == @players.length
-      @ui.message(response, *@players)
-      @throws.each do |user, symbol|
-        @ui.message("#{user} threw #{symbol}", *@players)
-      end
-      @throws = {}
+    msg = data['text']
+    if msg
+      @ui.message("#{player.name}: #{msg}", *@players)
     end
+
   end
 end

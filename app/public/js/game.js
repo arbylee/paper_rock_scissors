@@ -60,14 +60,18 @@ $("#disconnect").click(function() {
   socket.close()
 });
 
+$("#join_game").click(function() {
+  socket.send(JSON.stringify({'action': 'join_game'}));
+});
+
 $('#paper').click(function(){
-    socket.send(JSON.stringify({'text': 'paper'}));
+  socket.send(JSON.stringify({'throw': 'paper'}));
 })
 
 $('#rock').click(function(){
-    socket.send(JSON.stringify({'text': 'rock'}));
+  socket.send(JSON.stringify({'throw': 'rock'}));
 })
 
 $('#scissors').click(function(){
-    socket.send(JSON.stringify({'text': 'scissors'}));
+  socket.send(JSON.stringify({'throw': 'scissors'}));
 })

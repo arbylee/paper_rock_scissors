@@ -17,8 +17,8 @@ EM.run do
   end
 
   def handle_lobby_actions client, data
-    data = data['text']
-    if data == "join"
+    action = data['action']
+    if action == "join_game"
       open_game = @games.detect{|g| g.players.size < Game::MAX_PLAYERS}
       if open_game
         open_game.add_player client
@@ -31,8 +31,11 @@ EM.run do
         @games << game
         @lobby.message("Started a new game. Waiting for other players", client)
       end
-    else
-      @lobby.message("#{client.name}: #{data}")
+    end
+
+    msg = data['text']
+    if msg
+      @lobby.message("#{client.name}: #{msg}")
     end
   end
 
