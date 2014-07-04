@@ -22,9 +22,11 @@ class Game
     end
 
     if @throws.length == @players.length
-      response = "Throws are #{@throws}"
-      @throws = {}
       @ui.message(response, *@players)
+      @throws.each do |user, symbol|
+        @ui.message("#{user} threw #{symbol}", *@players)
+      end
+      @throws = {}
     end
   end
 end
