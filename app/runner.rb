@@ -5,6 +5,7 @@ require 'em-websocket'
 require 'sinatra/base'
 
 require_relative './client.rb'
+require_relative './card_game.rb'
 require_relative './game.rb'
 require_relative './lobby.rb'
 require_relative './socket_ui.rb'
@@ -19,13 +20,13 @@ EM.run do
   def handle_lobby_actions client, data
     action = data['action']
     if action == "join_game"
-      open_game = @games.detect{|g| g.players.size < Game::MAX_PLAYERS}
+      open_game = @games.detect{|g| g.players.size < CardGame::MAX_PLAYERS}
       if open_game
         open_game.add_player client
         @lobby.remove_client(client)
         @lobby.message("Joined a game with: #{open_game.players.map{|c| c.name}}", client)
       else
-        game = Game.new(SocketUI.new)
+        game = CardGame.new(SocketUI.new)
         game.add_player(client)
         @lobby.remove_client(client)
         @games << game
